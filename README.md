@@ -1,16 +1,21 @@
 # ClickReplay
 
-**Record your mouse and keyboard, then replay them — for clean, repeatable screen demos.**
+> **Record your mouse and keyboard, then replay them — for clean, repeatable screen demos.**
+
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](#install)
+[![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/TelesforoAleix/ClickReplay/releases)
+[![Tests](https://img.shields.io/badge/tests-25%20passing-brightgreen.svg)](#how-it-works)
 
 ClickReplay captures your clicks, key presses, scrolls and drags into a small,
 editable file, then plays them back with smooth, eased mouse movement. Point a
 screen recorder (OBS, Xbox Game Bar, Teams, etc.) at the replay and you get a
 polished walkthrough every time — no shaky cursor, no fumbled clicks.
 
-> **ClickReplay does not record video.** It reproduces your *actions*. Use it
-> together with any screen-capture tool to record the result.
-
-**Platform:** Windows · **Runtime:** Python 3.12+ · **Version:** 0.1.0
+> [!NOTE]
+> **ClickReplay does not record video.** It reproduces your *actions*. Pair it
+> with any screen-capture tool to record the result.
 
 ---
 
@@ -218,6 +223,32 @@ Clicks on other monitors are ignored.
 
 ---
 
+## Project status
+
+ClickReplay is a focused, single-purpose tool and is **stable for everyday use**.
+It is Windows-only by design. The 25-test suite runs headless (no real input
+devices required) and covers the recording format, configuration, recorder
+logic, and playback timing including the point-stop behaviour.
+
+For agents and contributors, [AGENTS.md](AGENTS.md) documents the architecture,
+invariants, and extension points.
+
+## Contributing
+
+Issues and pull requests are welcome.
+
+```powershell
+# set up a dev environment
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+pytest
+```
+
+Please keep tests headless and run `pytest` before opening a pull request. When
+changing user-facing behaviour or commands, update this README in the same
+change.
+
 ## License
 
-[MIT](LICENSE)
+Released under the [MIT License](LICENSE).
