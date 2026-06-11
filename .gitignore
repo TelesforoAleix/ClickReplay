@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+
+# Local user config (config.example.ini IS committed)
+config.ini
+
+# Recorded scripts produced at runtime
+output/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clickreplay"
+version = "0.1.0"
+description = "Record and replay mouse and keyboard actions on Windows for smooth, repeatable screen demos."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "ClickReplay contributors" }]
+keywords = ["screen-recording", "automation", "demo", "macro", "replay", "pyautogui"]
+dependencies = [
+    "click>=8.1",
+    "pynput>=1.7.8",
+    "pyautogui>=0.9.54",
+    "screeninfo>=0.8.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+build = ["pyinstaller>=6.0"]
+
+# Console command for technical users.
+[project.scripts]
+clickreplay = "clickreplay.cli:main"
+
+# Windowed command (no console window) for the GUI.
+[project.gui-scripts]
+clickreplay-gui = "clickreplay.gui:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
