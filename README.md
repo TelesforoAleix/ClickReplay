@@ -51,11 +51,25 @@ Both share the same engine and the same settings file.
 
 ### Option A — Download the app (easiest)
 
-Grab `ClickReplay.exe` (see [Build a double-click .exe](#build-a-double-click-exe)
-if you're producing it yourself), put it in a folder, and double-click it.
-Nothing else to install.
+Download the executable from the
+[**Releases**](https://github.com/TelesforoAleix/ClickReplay/releases) page, put
+it in a folder, and double-click it. Nothing else to install.
+
+Pick the build that matches your PC:
+
+| Your Windows PC | Download |
+|---|---|
+| **Intel / AMD (most PCs)** | `ClickReplay-<version>-win-x64.exe` |
+| **ARM (Surface Pro X, Copilot+ PC)** | `ClickReplay-<version>-win-arm64.exe` |
+
+> Not sure? You almost certainly want the **x64** build. (Check under
+> Settings → System → About → *System type* if you want to confirm.)
+
+The first launch may take a few seconds, and some antivirus tools flag
+freshly-built, unsigned executables — both are normal for this kind of app.
 
 ### Option B — Install with pip (for developers)
+
 
 ```powershell
 # from the project folder
@@ -200,9 +214,23 @@ pyinstaller packaging/clickreplay.spec
 This produces `dist/ClickReplay.exe` — a single windowed executable that opens
 the app. Drop a `config.ini` next to it to ship custom defaults.
 
+> **Architecture note:** PyInstaller builds for the architecture of the machine
+> it runs on; it cannot cross-compile. Build the **x64** executable on an x64
+> Windows PC and the **ARM64** executable on an ARM64 PC.
+
+### Automated release builds
+
+The repository includes a GitHub Actions workflow
+([`.github/workflows/build.yml`](.github/workflows/build.yml)) that builds the
+**x64** executable on a GitHub-hosted x64 runner and attaches it to the matching
+release. It runs automatically when a `v*` tag is pushed, and can also be run
+manually against an existing tag from the **Actions** tab. The ARM64 build is
+attached separately from an ARM64 machine.
+
 > **Note:** one-file executables sometimes trip antivirus heuristics on first
 > run, and they start a little slower than an installed copy. Both are normal
 > for PyInstaller builds.
+
 
 ---
 

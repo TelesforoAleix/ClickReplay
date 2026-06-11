@@ -1,0 +1,70 @@
+name: Build Windows executable
+
+# Builds the broadly-compatible x64 Windows executable on GitHub's x64 runner
+# and attaches it to the matching GitHub Release.
+#
+# Triggers:
+#   * pushing a tag like v1.2.3  -> builds and attaches to that release
+#   * manual run (workflow_dispatch) with a tag input -> same, for an existing tag
+#
+# Note: the ARM64 build is produced separately (PyInstaller cannot cross-compile),
+# so this workflow intentionally targets x64 only, which is what most users need.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing release tag to attach the build to (e.g. v0.1.0)"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python (x64)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[build]"
+
+      - name: Build the executable
+        run: pyinstaller packaging/clickreplay.spec --noconfirm --clean
+
+      - name: Resolve tag and name the artifact
+        id: name
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          if (-not $tag) { $tag = "${{ github.ref_name }}" }
+          $version = $tag.TrimStart("v")
+          $out = "ClickReplay-$version-win-x64.exe"
+          Copy-Item dist/ClickReplay.exe "dist/$out" -Force
+          "tag=$tag"   | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "asset=$out" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.name.outputs.asset }}
+          path: dist/${{ steps.name.outputs.asset }}
+
+      - name: Attach to the GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ steps.name.outputs.tag }}" "dist/${{ steps.name.outputs.asset }}" --clobber
