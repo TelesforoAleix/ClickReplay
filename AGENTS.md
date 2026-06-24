@@ -71,6 +71,11 @@ A recording is JSON: `{ "metadata": {...}, "events": [...] }`.
 - The config file is the single source of truth shared by CLI and GUI. Resolution
   order: explicit path → `CLICKREPLAY_CONFIG` env → `config.ini` next to the
   program → `%APPDATA%\ClickReplay\config.ini`.
+- Default recording paths are timestamped via `config.default_recording_path()`
+  so default record actions do not overwrite previous recordings.
+- The GUI recording dropdown lists `*.json` files from `Config.output_dir`,
+  newest first. Keep file-management helpers headless/testable instead of
+  burying path logic inside Tk callbacks.
 - Tests must stay headless: never require real input devices. Pass a fake
   `MonitorInfo` as `target_monitor`, use `dry_run=True`, or monkeypatch
   `clickreplay.player.pyautogui` and `Player._sleep`.

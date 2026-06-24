@@ -1,5 +1,7 @@
 """Tests for configuration defaults and INI loading/saving."""
 
+from datetime import datetime
+
 from clickreplay import config as cfgmod
 
 
@@ -62,3 +64,23 @@ def test_config_path_explicit_wins(tmp_path, monkeypatch):
     monkeypatch.setenv(cfgmod.CONFIG_ENV_VAR, str(tmp_path / "env.ini"))
     explicit = tmp_path / "explicit.ini"
     assert cfgmod.config_path(explicit) == explicit
+
+
+def test_default_recording_path_uses_timestamp(tmp_path):
+    path = cfgmod.default_recording_path(
+        tmp_path,
+        now=datetime(2026, 6, 24, 12, 30, 5),
+    )
+    assert path == tmp_path / "recording-20260624-123005.json"
+
+
+def test_default_recording_path_avoids_existing_file(tmp_path):
+    first = tmp_path / "recording-20260624-123005.json"
+    first.write_text("{}", encoding="utf-8")
+
+    path = cfgmod.default_recording_path(
+        tmp_path,
+        now=datetime(2026, 6, 24, 12, 30, 5),
+    )
+
+    assert path == tmp_path / "recording-20260624-123005-2.json"

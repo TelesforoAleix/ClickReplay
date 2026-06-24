@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import sys
 import time
-from pathlib import Path
 
 import click
 
@@ -44,7 +43,7 @@ def monitors() -> None:
 )
 @click.option(
     "--output", "-o", "output_path", default=None,
-    help="Output JSON file path. Defaults to <output_dir>/recording.json.",
+    help="Output JSON file path. Defaults to a timestamped file in the output folder.",
 )
 @click.option(
     "--config", "config_file", default=None,
@@ -63,7 +62,7 @@ def record(monitor_idx: int | None, output_path: str | None, config_file: str | 
         sys.exit(1)
 
     if output_path is None:
-        output_path = str(Path(cfg.output_dir) / "recording.json")
+        output_path = str(cfgmod.default_recording_path(cfg.output_dir))
 
     click.echo(
         f"Recording on monitor [{mon.index}] {mon.name} "

@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from . import config as cfgmod
 from .monitors import MonitorInfo, list_monitors, select_monitor
@@ -30,6 +30,55 @@ _EASING_CHOICES = [
 ]
 
 
+def list_recordings(output_dir: str | Path) -> list[Path]:
+    """Return JSON recordings in *output_dir*, newest first."""
+    base_dir = Path(output_dir)
+    try:
+        recordings = [p for p in base_dir.glob("*.json") if p.is_file()]
+    except OSError:
+        return []
+    return sorted(
+        recordings,
+        key=lambda p: (_recording_mtime(p), p.name.lower()),
+        reverse=True,
+    )
+
+
+def recording_label(recording: str | Path) -> str:
+    """Return the label shown for a recording in the GUI picker."""
+    return Path(recording).name
+
+
+def rename_recording(recording: str | Path, new_name: str) -> Path:
+    """Rename *recording* within its folder, appending .json when omitted."""
+    source = Path(recording)
+    clean_name = new_name.strip()
+    if not clean_name or clean_name in {".", ".."}:
+        raise ValueError("Recording name cannot be empty.")
+    if "/" in clean_name or "\\" in clean_name:
+        raise ValueError("Use a file name, not a path.")
+    if not clean_name.lower().endswith(".json"):
+        clean_name = f"{clean_name}.json"
+
+    target = source.with_name(clean_name)
+    if _same_path(source, target):
+        return source
+    if target.exists():
+        raise FileExistsError(f"A recording named '{target.name}' already exists.")
+    return source.rename(target)
+
+
+def _recording_mtime(recording: Path) -> float:
+    try:
+        return recording.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def _same_path(left: str | Path, right: str | Path) -> bool:
+    return Path(left).resolve(strict=False) == Path(right).resolve(strict=False)
+
+
 class ClickReplayApp:
     """Main application window."""
 
@@ -39,10 +88,11 @@ class ClickReplayApp:
         self._recorder: Recorder | None = None
         self._busy = False
         self._last_script_path: str | None = None
+        self._recordings: list[Path] = []
 
         root.title("ClickReplay")
         root.resizable(False, False)
-        root.minsize(380, 240)
+        root.minsize(520, 280)
 
         self._monitors = list_monitors()
         self._build_ui()
@@ -53,6 +103,8 @@ class ClickReplayApp:
         pad = {"padx": 10, "pady": 6}
         frm = ttk.Frame(self.root, padding=12)
         frm.grid(row=0, column=0, sticky="nsew")
+        frm.columnconfigure(1, weight=1)
+        frm.columnconfigure(2, weight=1)
 
         # Monitor selector
         ttk.Label(frm, text="Monitor:").grid(row=0, column=0, sticky="w", **pad)
@@ -64,7 +116,7 @@ class ClickReplayApp:
         if self._monitors:
             idx = min(self.cfg.default_monitor, len(self._monitors) - 1)
             self.monitor_box.current(max(idx, 0))
-        self.monitor_box.grid(row=0, column=1, columnspan=2, sticky="we", **pad)
+        self.monitor_box.grid(row=0, column=1, columnspan=3, sticky="we", **pad)
 
         # Speed
         ttk.Label(frm, text="Speed:").grid(row=1, column=0, sticky="w", **pad)
@@ -74,31 +126,46 @@ class ClickReplayApp:
         )
         self.dry_run_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(frm, text="Dry run (no clicks)", variable=self.dry_run_var).grid(
-            row=1, column=2, sticky="w", **pad
+            row=1, column=2, columnspan=2, sticky="w", **pad
         )
+
+        # Recording picker
+        ttk.Label(frm, text="Recording:").grid(row=2, column=0, sticky="w", **pad)
+        self.recording_var = tk.StringVar()
+        self.recording_box = ttk.Combobox(
+            frm,
+            textvariable=self.recording_var,
+            state="readonly",
+            width=34,
+            postcommand=self._refresh_recordings,
+        )
+        self.recording_box.grid(row=2, column=1, columnspan=2, sticky="we", **pad)
+        self.rename_btn = ttk.Button(frm, text="Rename", command=self.on_rename)
+        self.rename_btn.grid(row=2, column=3, sticky="we", **pad)
 
         # Action buttons
         self.record_btn = ttk.Button(frm, text="● Record", command=self.on_record)
-        self.record_btn.grid(row=2, column=0, sticky="we", **pad)
+        self.record_btn.grid(row=3, column=0, sticky="we", **pad)
         self.stop_btn = ttk.Button(frm, text="■ Stop", command=self.on_stop, state="disabled")
-        self.stop_btn.grid(row=2, column=1, sticky="we", **pad)
-        self.play_btn = ttk.Button(frm, text="▶ Play…", command=self.on_play)
-        self.play_btn.grid(row=2, column=2, sticky="we", **pad)
+        self.stop_btn.grid(row=3, column=1, sticky="we", **pad)
+        self.play_btn = ttk.Button(frm, text="▶ Play", command=self.on_play)
+        self.play_btn.grid(row=3, column=2, sticky="we", **pad)
 
         # Settings + status
         self.settings_btn = ttk.Button(frm, text="⚙ Settings", command=self.open_settings)
-        self.settings_btn.grid(row=3, column=0, sticky="we", **pad)
+        self.settings_btn.grid(row=3, column=3, sticky="we", **pad)
 
         self.status_var = tk.StringVar(value="Ready.")
         status = ttk.Label(frm, textvariable=self.status_var, relief="sunken", anchor="w")
-        status.grid(row=4, column=0, columnspan=3, sticky="we", padx=10, pady=(10, 4))
+        status.grid(row=4, column=0, columnspan=4, sticky="we", padx=10, pady=(10, 4))
 
         hint = ttk.Label(
             frm,
             text=f"Stop: {self.cfg.stop_hotkey}   Waypoint: {self.cfg.waypoint_hotkey}   Abort play: Esc",
             foreground="#666",
         )
-        hint.grid(row=5, column=0, columnspan=3, sticky="w", padx=10, pady=(0, 4))
+        hint.grid(row=5, column=0, columnspan=4, sticky="w", padx=10, pady=(0, 4))
+        self._refresh_recordings()
 
     @staticmethod
     def _monitor_label(m: MonitorInfo) -> str:
@@ -115,12 +182,46 @@ class ClickReplayApp:
             return None
         return self._monitors[self.monitor_box.current()]
 
+    def _selected_recording(self) -> Path | None:
+        idx = self.recording_box.current()
+        if idx < 0 or idx >= len(self._recordings):
+            return None
+        return self._recordings[idx]
+
+    def _refresh_recordings(self, select_path: str | Path | None = None) -> None:
+        selected = Path(select_path) if select_path is not None else self._selected_recording()
+        if selected is None and self._last_script_path is not None:
+            selected = Path(self._last_script_path)
+
+        self._recordings = list_recordings(self.cfg.output_dir)
+        self.recording_box["values"] = [recording_label(p) for p in self._recordings]
+
+        if not self._recordings:
+            self.recording_var.set("")
+            self._update_recording_controls()
+            return
+
+        selected_index = 0
+        if selected is not None:
+            for idx, recording in enumerate(self._recordings):
+                if _same_path(recording, selected):
+                    selected_index = idx
+                    break
+        self.recording_box.current(selected_index)
+        self._update_recording_controls()
+
+    def _update_recording_controls(self) -> None:
+        has_recording = bool(self._recordings)
+        self.recording_box["state"] = "disabled" if self._busy else "readonly"
+        self.rename_btn["state"] = "normal" if (has_recording and not self._busy) else "disabled"
+
     def _set_busy(self, busy: bool, *, recording: bool = False) -> None:
         self._busy = busy
         self.record_btn["state"] = "disabled" if busy else "normal"
         self.play_btn["state"] = "disabled" if busy else "normal"
         self.settings_btn["state"] = "disabled" if busy else "normal"
         self.stop_btn["state"] = "normal" if (busy and recording) else "disabled"
+        self._update_recording_controls()
 
     def _countdown(self, n: int, then) -> None:
         if n <= 0:
@@ -139,7 +240,7 @@ class ClickReplayApp:
             messagebox.showerror("ClickReplay", "No monitor detected.")
             return
         self._set_busy(True, recording=True)
-        out_path = str(Path(self.cfg.output_dir) / "recording.json")
+        out_path = str(cfgmod.default_recording_path(self.cfg.output_dir))
         self._countdown(
             self.cfg.countdown,
             lambda: self._begin_record(mon, out_path),
@@ -167,7 +268,10 @@ class ClickReplayApp:
             path = save_script(script, out_path)
             self._last_script_path = str(path)
             n = len(script.events)
-            self.root.after(0, lambda: self._finish(f"Saved {n} events to {path}"))
+            self.root.after(
+                0,
+                lambda: self._finish(f"Saved {n} events to {path}", selected_recording=path),
+            )
         except Exception as exc:  # noqa: BLE001 — surface any failure to the user
             self.root.after(0, lambda: self._finish(f"Error: {exc}", error=True))
         finally:
@@ -182,13 +286,11 @@ class ClickReplayApp:
     def on_play(self) -> None:
         if self._busy:
             return
-        initial_dir = self.cfg.output_dir if Path(self.cfg.output_dir).is_dir() else "."
-        path = filedialog.askopenfilename(
-            title="Choose a recording to play",
-            initialdir=initial_dir,
-            initialfile=self._last_script_path or "",
-            filetypes=[("ClickReplay recordings", "*.json"), ("All files", "*.*")],
-        )
+        recording = self._selected_recording()
+        if recording is None:
+            path = self._ask_recording_file()
+        else:
+            path = str(recording)
         if not path:
             return
 
@@ -203,6 +305,16 @@ class ClickReplayApp:
         self._countdown(
             self.cfg.countdown,
             lambda: self._begin_play(path, speed, mon),
+        )
+
+    def _ask_recording_file(self) -> str:
+        initial_dir = self.cfg.output_dir if Path(self.cfg.output_dir).is_dir() else "."
+        initial_file = Path(self._last_script_path).name if self._last_script_path else ""
+        return filedialog.askopenfilename(
+            title="Choose a recording to play",
+            initialdir=initial_dir,
+            initialfile=initial_file,
+            filetypes=[("ClickReplay recordings", "*.json"), ("All files", "*.*")],
         )
 
     def _begin_play(self, path: str, speed: float, mon: MonitorInfo | None) -> None:
@@ -229,18 +341,54 @@ class ClickReplayApp:
                 dry_run=dry,
             )
             player.play()
-            self.root.after(0, lambda: self._finish("Playback complete."))
+            self.root.after(0, lambda: self._finish("Playback complete.", selected_recording=path))
         except Exception as exc:  # noqa: BLE001
             self.root.after(0, lambda: self._finish(f"Error: {exc}", error=True))
 
+    # ----- rename ------------------------------------------------------------
+
+    def on_rename(self) -> None:
+        if self._busy:
+            return
+        recording = self._selected_recording()
+        if recording is None:
+            messagebox.showinfo("ClickReplay", "Select a recording to rename.")
+            return
+
+        new_name = simpledialog.askstring(
+            "ClickReplay — Rename Recording",
+            "New recording name:",
+            initialvalue=recording.name,
+            parent=self.root,
+        )
+        if new_name is None:
+            return
+
+        try:
+            new_path = rename_recording(recording, new_name)
+        except (OSError, ValueError) as exc:
+            messagebox.showerror("ClickReplay — Rename Recording", str(exc), parent=self.root)
+            return
+
+        self._last_script_path = str(new_path)
+        self._refresh_recordings(new_path)
+        self._set_status(f"Renamed to {new_path.name}.")
+
     # ----- shared finish -----------------------------------------------------
 
-    def _finish(self, message: str, *, error: bool = False) -> None:
+    def _finish(
+        self,
+        message: str,
+        *,
+        error: bool = False,
+        selected_recording: str | Path | None = None,
+    ) -> None:
         try:
             self.root.deiconify()
         except tk.TclError:
             pass
         self._set_busy(False)
+        self._refresh_recordings(selected_recording)
         self._set_status(message)
         if error:
             messagebox.showerror("ClickReplay", message)
@@ -253,6 +401,7 @@ class ClickReplayApp:
     def _on_settings_saved(self, cfg: cfgmod.Config) -> None:
         self.cfg = cfg
         self.speed_var.set(str(cfg.speed))
+        self._refresh_recordings()
         self._set_status("Settings saved.")
 
 

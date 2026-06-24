@@ -101,6 +101,9 @@ clickreplay play output/my-demo.json --dry-run
 ```
 
 Replay faster or slower with `--speed` (e.g. `--speed 1.5` or `--speed 0.7`).
+If you omit `-o`, ClickReplay saves a timestamped file such as
+`output/recording-20260624-123005.json` and avoids overwriting an existing
+recording.
 
 ---
 
@@ -110,11 +113,15 @@ Launch it with `clickreplay-gui` (or double-click `ClickReplay.exe`).
 
 1. Pick the **Monitor** that shows what you want to record.
 2. Click **● Record**, wait for the countdown, then do your steps.
-3. Press **F9** (or click **■ Stop**) to finish — the recording is saved.
-4. Click **▶ Play…**, choose the file, and watch it replay.
-5. Click **⚙ Settings** to change speed, hotkeys, the point-stop pause, and more.
+3. Press **F9** (or click **■ Stop**) to finish — the recording is saved as a timestamped JSON file.
+4. Pick a recording from the **Recording** dropdown, then click **▶ Play**.
+5. Click **Rename** to give the selected recording a clearer file name.
+6. Click **⚙ Settings** to change speed, hotkeys, the point-stop pause, and more.
 
 Tick **Dry run** to preview a replay without actually clicking.
+The recording dropdown shows JSON files from the configured output folder,
+newest first, and refreshes after recording, renaming, playback, or Settings
+changes.
 
 ---
 
@@ -143,7 +150,7 @@ See [`config.example.ini`](config.example.ini) for a fully commented template.
 | `easing` | `easeInOutQuad` | Mouse movement smoothing curve |
 | `min_move_duration` / `max_move_duration` | `0.05` / `2.0` | Limits on how long a glide takes |
 | `default_monitor` | `0` | Monitor used when none is given |
-| `directory` | `output` | Where recordings are saved |
+| `directory` | `output` | Where timestamped recordings are saved by default |
 
 ---
 

@@ -21,6 +21,7 @@ import configparser
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -174,6 +175,22 @@ def config_path(explicit: str | os.PathLike[str] | None = None) -> Path:
     if portable.exists():
         return portable
     return appdata_config_path()
+
+
+def default_recording_path(
+    output_dir: str | os.PathLike[str] = DEFAULT_OUTPUT_DIR,
+    *,
+    now: datetime | None = None,
+) -> Path:
+    """Return a timestamped recording path that does not overwrite an existing file."""
+    timestamp = (now or datetime.now()).strftime("%Y%m%d-%H%M%S")
+    base_dir = Path(output_dir)
+    candidate = base_dir / f"recording-{timestamp}.json"
+    suffix = 2
+    while candidate.exists():
+        candidate = base_dir / f"recording-{timestamp}-{suffix}.json"
+        suffix += 1
+    return candidate
 
 
 # ---------------------------------------------------------------------------
