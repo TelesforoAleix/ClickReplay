@@ -5,4 +5,4 @@ and drags into an editable JSON file, then replays them with smooth, eased
 mouse movement so you can produce clean, repeatable screen recordings.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

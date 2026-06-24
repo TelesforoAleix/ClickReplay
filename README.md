@@ -5,8 +5,8 @@
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](#install)
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/TelesforoAleix/ClickReplay/releases)
-[![Tests](https://img.shields.io/badge/tests-25%20passing-brightgreen.svg)](#how-it-works)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/TelesforoAleix/ClickReplay/releases)
+[![Tests](https://img.shields.io/badge/tests-34%20passing-brightgreen.svg)](#how-it-works)
 
 ClickReplay captures your clicks, key presses, scrolls and drags into a small,
 editable file, then plays them back with smooth, eased mouse movement. Point a

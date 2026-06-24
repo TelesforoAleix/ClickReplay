@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "clickreplay"
-version = "0.1.0"
+version = "0.1.1"
 description = "Record and replay mouse and keyboard actions on Windows for smooth, repeatable screen demos."
 readme = "README.md"
 requires-python = ">=3.12"
