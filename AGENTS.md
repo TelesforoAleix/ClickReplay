@@ -86,7 +86,7 @@ A recording is JSON: `{ "metadata": {...}, "events": [...] }`.
   handle it in `Player.play`'s dispatch, add a test.
 - **New setting:** add a field to `config.Config`, include it in `to_parser`/
   `from_parser`, surface it in `gui.SettingsWindow`, document it in
-  `config.example.ini` and the README table.
+  `config.example.ini` and the config table in `docs/usage.md`.
 - After any change: run `pytest`, and update `README.md` if user-facing behavior
   or commands changed.
 
