@@ -1,289 +1,90 @@
 # ClickReplay
 
-> **Record your mouse and keyboard, then replay them — for clean, repeatable screen demos.**
+Record mouse and keyboard actions to editable JSON, then replay them for repeatable screen demos.
+
+**ClickReplay does not record video.** Use a screen recorder such as OBS alongside it.
 
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](#install)
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.1-blue.svg)](https://github.com/TelesforoAleix/ClickReplay/releases)
-[![Tests](https://img.shields.io/badge/tests-34%20passing-brightgreen.svg)](#how-it-works)
 
-ClickReplay captures your clicks, key presses, scrolls and drags into a small,
-editable file, then plays them back with smooth, eased mouse movement. Point a
-screen recorder (OBS, Xbox Game Bar, Teams, etc.) at the replay and you get a
-polished walkthrough every time — no shaky cursor, no fumbled clicks.
+## Overview
 
-> [!NOTE]
-> **ClickReplay does not record video.** It reproduces your *actions*. Pair it
-> with any screen-capture tool to record the result.
+ClickReplay was made to record clean, repeatable takes for a tutorial video series.
+It records input with pynput and replays it with eased mouse motion through pyautogui, using a CLI or Tkinter GUI.
+Version 0.1.1, beta. Windows only, Python 3.12+.
 
----
+## Architecture
 
-## Table of contents
+```mermaid
+flowchart LR
+    input["Mouse and keyboard input"] --> recorder["recorder.py"]
+    recorder --> json["JSON recording"] --> player["player.py"]
+    player --> screen["Screen"] --> capture["External screen recorder"]
+    config["config.ini"] --> cli["cli.py"]
+    config --> gui["gui.py"]
+    cli --> recorder
+    cli --> player
+    gui --> recorder
+    gui --> player
+    monitors["monitors.py"] -->|"Scales coordinates"| player
+```
 
-- [Who it's for](#who-its-for)
-- [Install](#install)
-- [Quick start (command line)](#quick-start-command-line)
-- [Using the app (GUI)](#using-the-app-gui)
-- [The config file](#the-config-file)
-- [Point-stop: pause on every step](#point-stop-pause-on-every-step)
-- [Hotkeys](#hotkeys)
-- [Commands](#commands)
-- [How it works](#how-it-works)
-- [Build a double-click .exe](#build-a-double-click-exe)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
-
----
-
-## Who it's for
-
-- **Just want to click buttons?** Use the **app** (a small window with Record
-  and Play buttons), or a packaged `ClickReplay.exe` that needs nothing
-  installed.
-- **Comfortable with a terminal?** Use the **`clickreplay` command line**.
-
-Both share the same engine and the same settings file.
-
----
+- [recorder.py](src/clickreplay/recorder.py) writes hand-editable JSON; [player.py](src/clickreplay/player.py) replays it.
+- [cli.py](src/clickreplay/cli.py) and [gui.py](src/clickreplay/gui.py) share `config.ini` settings; see [config.example.ini](config.example.ini).
+- [monitors.py](src/clickreplay/monitors.py) scales coordinates for the replay display.
 
 ## Install
 
-### Option A — Download the app (easiest)
+Download the Windows executable from [Releases](https://github.com/TelesforoAleix/ClickReplay/releases) and double-click it:
 
-Download the executable from the
-[**Releases**](https://github.com/TelesforoAleix/ClickReplay/releases) page, put
-it in a folder, and double-click it. Nothing else to install.
+- x64: `ClickReplay-0.1.1-win-x64.exe`
+- ARM64: `ClickReplay-0.1.1-win-arm64.exe`
 
-Pick the build that matches your PC:
+Unsigned builds may be flagged by antivirus on first run.
 
-| Your Windows PC | Download |
-|---|---|
-| **Intel / AMD (most PCs)** | `ClickReplay-<version>-win-x64.exe` |
-| **ARM (Surface Pro X, Copilot+ PC)** | `ClickReplay-<version>-win-arm64.exe` |
-
-> Not sure? You almost certainly want the **x64** build. (Check under
-> Settings → System → About → *System type* if you want to confirm.)
-
-The first launch may take a few seconds, and some antivirus tools flag
-freshly-built, unsigned executables — both are normal for this kind of app.
-
-### Option B — Install with pip (for developers)
-
+Or install with Python 3.12+ from the project folder:
 
 ```powershell
-# from the project folder
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e .
-
-# check it works
 clickreplay --help
-clickreplay monitors
 ```
 
----
-
-## Quick start (command line)
+## Quick start
 
 ```powershell
-# 1. See your monitors and their numbers
+# List monitors and their numbers
 clickreplay monitors
 
-# 2. Record on monitor 0. Do your steps, then press F9 to stop.
+# Record on monitor 0; press F9 to stop
 clickreplay record --monitor 0 -o output/my-demo.json
 
-# 3. Replay it (start your screen recorder first)
+# Start your screen recorder, then replay
 clickreplay play output/my-demo.json
 
-# 4. Preview the steps without moving the mouse
+# Preview without moving the mouse
 clickreplay play output/my-demo.json --dry-run
 ```
 
-Replay faster or slower with `--speed` (e.g. `--speed 1.5` or `--speed 0.7`).
-If you omit `-o`, ClickReplay saves a timestamped file such as
-`output/recording-20260624-123005.json` and avoids overwriting an existing
-recording.
+Change replay speed with `--speed` (e.g. `--speed 1.5`). Without `-o`, recordings are saved with a timestamped name.
 
----
+## GUI
 
-## Using the app (GUI)
+1. Launch `clickreplay-gui` or double-click the downloaded executable, then pick a monitor.
+2. Click **Record**, wait for the countdown, and perform your steps.
+3. Press **F9** or click **Stop** to save the recording as timestamped JSON.
+4. Pick a recording from the **Recording** dropdown and click **Play**.
 
-Launch it with `clickreplay-gui` (or double-click `ClickReplay.exe`).
-
-1. Pick the **Monitor** that shows what you want to record.
-2. Click **● Record**, wait for the countdown, then do your steps.
-3. Press **F9** (or click **■ Stop**) to finish — the recording is saved as a timestamped JSON file.
-4. Pick a recording from the **Recording** dropdown, then click **▶ Play**.
-5. Click **Rename** to give the selected recording a clearer file name.
-6. Click **⚙ Settings** to change speed, hotkeys, the point-stop pause, and more.
-
-Tick **Dry run** to preview a replay without actually clicking.
-The recording dropdown shows JSON files from the configured output folder,
-newest first, and refreshes after recording, renaming, playback, or Settings
-changes.
-
----
-
-## The config file
-
-All settings live in a plain text `config.ini`. The app's **Settings** screen
-edits this same file, so the GUI and command line always agree.
-
-ClickReplay looks for the file in this order:
-
-1. a path you pass with `--config`,
-2. the `CLICKREPLAY_CONFIG` environment variable,
-3. **`config.ini` next to the program** (great for a portable folder you can
-   copy to another PC),
-4. `%APPDATA%\ClickReplay\config.ini` (created automatically on first run).
-
-See [`config.example.ini`](config.example.ini) for a fully commented template.
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `stop_hotkey` | `<f9>` | Key that stops recording |
-| `waypoint_hotkey` | `<f10>` | Key that drops a "move here" waypoint |
-| `speed` | `1.0` | Playback speed (2.0 = twice as fast) |
-| `countdown` | `3` | Seconds before recording/playback starts |
-| `point_stop_seconds` | `1.0` | Pause after each click/waypoint (0 = off) |
-| `easing` | `easeInOutQuad` | Mouse movement smoothing curve |
-| `min_move_duration` / `max_move_duration` | `0.05` / `2.0` | Limits on how long a glide takes |
-| `default_monitor` | `0` | Monitor used when none is given |
-| `directory` | `output` | Where timestamped recordings are saved by default |
-
----
-
-## Point-stop: pause on every step
-
-When you replay a recording, ClickReplay can **pause briefly after each click,
-drag, or waypoint** so viewers can actually see what happened. That pause is the
-*point-stop*.
-
-- Set a global default with `point_stop_seconds` in the config (or the Settings
-  screen), or per-run with `clickreplay play file.json --point-stop 1.5`.
-- Set it to `0` to turn pausing off.
-- Want a longer pause at one specific spot? Open the recording (it's just JSON)
-  and add `"hold": 2.0` to that event.
-- The point-stop pause is **not** sped up or slowed down by `--speed`, so your
-  steps stay readable even at high playback speed.
-
----
-
-## Hotkeys
-
-| When | Key | Does |
-|---|---|---|
-| Recording | **F9** | Stop recording |
-| Recording | **F10** | Drop a waypoint (move the cursor here on replay, no click) |
-| Playback | **Esc** | Abort immediately |
-| Playback | slam mouse into a screen corner | Emergency abort (pyautogui failsafe) |
-
----
-
-## Commands
-
-| Command | What it does |
-|---|---|
-| `clickreplay monitors` | List displays and their indices |
-| `clickreplay record --monitor N -o FILE` | Record until F9 |
-| `clickreplay play FILE [--speed S] [--point-stop S] [--dry-run]` | Replay a recording |
-| `clickreplay info FILE` | Show a summary of a recording |
-| `clickreplay-gui` | Launch the app window |
-
-Run any command with `--help` for all options.
-
----
-
-## How it works
-
-- **Recording** uses [`pynput`](https://pypi.org/project/pynput/) to listen for
-  clicks, scrolls, keys, and drags. It stores *meaningful* positions (clicks,
-  drag start/end, waypoints) rather than every tiny mouse wiggle, so recordings
-  stay small and replay looks smooth.
-- A recording is a small JSON file: monitor info plus a list of time-stamped
-  events. You can edit it by hand to fix a coordinate or adjust timing.
-- **Replay** uses [`pyautogui`](https://pypi.org/project/pyautogui/) to move,
-  click, scroll, and type. Movement between points is re-created with an easing
-  curve, and the point-stop pause is added after each step.
-- Coordinates are stored relative to the monitor you recorded on, and are scaled
-  proportionally if you replay on a differently-sized display.
-
----
-
-## Build a double-click .exe
-
-```powershell
-pip install -e ".[build]"
-pyinstaller packaging/clickreplay.spec
-```
-
-This produces `dist/ClickReplay.exe` — a single windowed executable that opens
-the app. Drop a `config.ini` next to it to ship custom defaults.
-
-> **Architecture note:** PyInstaller builds for the architecture of the machine
-> it runs on; it cannot cross-compile. Build the **x64** executable on an x64
-> Windows PC and the **ARM64** executable on an ARM64 PC.
-
-### Automated release builds
-
-The repository includes a GitHub Actions workflow
-([`.github/workflows/build.yml`](.github/workflows/build.yml)) that builds the
-**x64** executable on a GitHub-hosted x64 runner and attaches it to the matching
-release. It runs automatically when a `v*` tag is pushed, and can also be run
-manually against an existing tag from the **Actions** tab. The ARM64 build is
-attached separately from an ARM64 machine.
-
-> **Note:** one-file executables sometimes trip antivirus heuristics on first
-> run, and they start a little slower than an installed copy. Both are normal
-> for PyInstaller builds.
-
-
----
-
-## Troubleshooting
-
-**Clicks land in the wrong place.** Make sure you replay on the same monitor (or
-size) you recorded on; use `--monitor` to choose. On high-DPI screens, keep the
-display scale the same between recording and replay.
-
-**Nothing happens / it clicks the wrong window.** Increase the `countdown` so you
-have time to focus the target window before playback starts.
-
-**`clickreplay monitors` shows too few displays.** Make sure all monitors are
-connected and active in Windows Display Settings.
-
-**Recording seems empty.** ClickReplay only records on the monitor you selected.
-Clicks on other monitors are ignored.
-
----
-
-## Project status
-
-ClickReplay is a focused, single-purpose tool and is **stable for everyday use**.
-It is Windows-only by design. The 25-test suite runs headless (no real input
-devices required) and covers the recording format, configuration, recorder
-logic, and playback timing including the point-stop behaviour.
-
-For agents and contributors, [AGENTS.md](AGENTS.md) documents the architecture,
-invariants, and extension points.
+See [Usage reference](docs/usage.md) for configuration, point-stop pauses, hotkeys, commands, executable builds, and troubleshooting.
 
 ## Contributing
 
-Issues and pull requests are welcome.
+Install test dependencies with `pip install -e ".[dev]"`, then run `pytest`.
+Keep tests headless and update documentation when user-facing behaviour or commands change.
+[AGENTS.md](AGENTS.md) documents the architecture, invariants, and extension points.
 
-```powershell
-# set up a dev environment
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
-pytest
-```
-
-Please keep tests headless and run `pytest` before opening a pull request. When
-changing user-facing behaviour or commands, update this README in the same
-change.
-
-## License
+## Licence
 
 Released under the [MIT License](LICENSE).
