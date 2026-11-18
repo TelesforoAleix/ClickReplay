@@ -8,31 +8,26 @@ Record mouse and keyboard actions to editable JSON, then replay them for repeata
 [![Python](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-## Overview
-
-ClickReplay was made to record clean, repeatable takes for a tutorial video series.
-It records input with pynput and replays it with eased mouse motion through pyautogui, using a CLI or Tkinter GUI.
 Version 0.1.1, beta. Windows only, Python 3.12+.
 
-## Architecture
+## Why it exists
 
-```mermaid
-flowchart LR
-    input["Mouse and keyboard input"] --> recorder["recorder.py"]
-    recorder --> json["JSON recording"] --> player["player.py"]
-    player --> screen["Screen"] --> capture["External screen recorder"]
-    config["config.ini"] --> cli["cli.py"]
-    config --> gui["gui.py"]
-    cli --> recorder
-    cli --> player
-    gui --> recorder
-    gui --> player
-    monitors["monitors.py"] -->|"Scales coordinates"| player
-```
+I built ClickReplay at Microsoft for a six-part tutorial video series on manufacturing in Business Central ([the series](https://www.youtube.com/playlist?list=PLEyIZHETM3k4)).
+Each demo needed clean, repeatable takes, and recording the same clicks by hand gave uneven results.
+ClickReplay records the input once, lets me edit it as JSON, and replays it with smooth mouse motion while a screen recorder captures the take.
+It was part of a GenAI-built production toolchain (Copilot agents, the Microsoft Learn MCP server, Page Scripting), and I built the tool itself with AI coding agents.
 
-- [recorder.py](src/clickreplay/recorder.py) writes hand-editable JSON; [player.py](src/clickreplay/player.py) replays it.
-- [cli.py](src/clickreplay/cli.py) and [gui.py](src/clickreplay/gui.py) share `config.ini` settings; see [config.example.ini](config.example.ini).
+## How it works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/clickreplay-flow-dark.svg">
+  <img alt="The CLI or the GUI, which share config.ini, starts recording or replay. Mouse and keyboard input is recorded to editable JSON, replayed with monitor scaling to the screen, and captured by an external screen recorder." src="docs/diagrams/clickreplay-flow-light.svg" width="100%">
+</picture>
+
+- [recorder.py](src/clickreplay/recorder.py) records input with pynput and writes hand-editable JSON.
+- [player.py](src/clickreplay/player.py) replays it with eased mouse motion through pyautogui.
 - [monitors.py](src/clickreplay/monitors.py) scales coordinates for the replay display.
+- [cli.py](src/clickreplay/cli.py) and the Tkinter [gui.py](src/clickreplay/gui.py) share `config.ini` settings; see [config.example.ini](config.example.ini).
 
 ## Install
 
@@ -77,13 +72,15 @@ Change replay speed with `--speed` (e.g. `--speed 1.5`). Without `-o`, recording
 3. Press **F9** or click **Stop** to save the recording as timestamped JSON.
 4. Pick a recording from the **Recording** dropdown and click **Play**.
 
-See [Usage reference](docs/usage.md) for configuration, point-stop pauses, hotkeys, commands, executable builds, and troubleshooting.
+## For agents and operators
 
-## Contributing
+- [Usage reference](docs/usage.md): configuration, point-stop pauses, hotkeys, commands, executable builds, and troubleshooting.
+- [AGENTS.md](AGENTS.md): architecture, invariants, and extension points.
+
+### Contributing
 
 Install test dependencies with `pip install -e ".[dev]"`, then run `pytest`.
 Keep tests headless and update documentation when user-facing behaviour or commands change.
-[AGENTS.md](AGENTS.md) documents the architecture, invariants, and extension points.
 
 ## Licence
 
